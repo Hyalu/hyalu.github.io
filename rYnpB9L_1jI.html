@@ -17,19 +17,23 @@
     --border: #334155;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body {
+  html, body {
     margin: 0;
+    padding: 0;
+    height: 100dvh;
+    overflow: hidden;
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
     line-height: 1.6;
+    display: flex;
+    flex-direction: column;
   }
-  .sticky-top {
-    position: sticky;
-    top: 0;
-    z-index: 50;
+  .top-pane {
+    flex-shrink: 0;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
+    z-index: 10;
   }
   .player-wrap {
     position: relative;
@@ -37,7 +41,7 @@
     max-width: 720px;
     margin: 0 auto;
     aspect-ratio: 16 / 9;
-    max-height: 34vh;
+    max-height: 28dvh;
     background: #000;
   }
   #player {
@@ -47,17 +51,17 @@
   .controls {
     max-width: 720px;
     margin: 0 auto;
-    padding: 8px 12px;
+    padding: 6px 10px;
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 5px;
     align-items: center;
     justify-content: space-between;
     background: #131c31;
   }
   .btn-group {
     display: flex;
-    gap: 6px;
+    gap: 5px;
     flex-wrap: wrap;
     align-items: center;
   }
@@ -65,9 +69,9 @@
     background: var(--card);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 13px;
+    border-radius: 7px;
+    padding: 5px 8px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
@@ -78,22 +82,27 @@
     border-color: var(--accent);
     color: var(--accent);
   }
+  .transcript-pane {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
   .container {
     max-width: 720px;
     margin: 0 auto;
     padding: 12px 12px 60px;
   }
   .video-meta {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     padding: 10px 12px;
     background: var(--card);
     border-radius: 10px;
     border: 1px solid var(--border);
   }
   .video-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
-    margin: 0 0 4px;
+    margin: 0 0 3px;
   }
   .video-hint {
     font-size: 12px;
@@ -125,7 +134,7 @@
     user-select: none;
   }
   .words {
-    font-size: 17px;
+    font-size: 16px;
     line-height: 1.75;
     word-break: keep-all;
   }
@@ -156,12 +165,12 @@
     background: rgba(251, 191, 36, 0.2);
   }
   .footer-note {
-    margin-top: 20px;
-    padding: 12px;
+    margin-top: 16px;
+    padding: 10px;
     border-radius: 10px;
     background: #131c31;
     border: 1px dashed var(--border);
-    font-size: 13px;
+    font-size: 12px;
     color: var(--muted);
     text-align: center;
   }
@@ -169,7 +178,7 @@
 </head>
 <body>
 
-<div class="sticky-top">
+<div class="top-pane">
   <div class="player-wrap">
     <iframe id="player"
       src="https://www.youtube-nocookie.com/embed/rYnpB9L_1jI?enablejsapi=1&playsinline=1&rel=0"
@@ -183,7 +192,7 @@
     <div class="btn-group">
       <button id="btnPlay" onclick="togglePlay()">▶ 재생</button>
       <button onclick="seekRelative(-3)">⏪ -3초</button>
-      <button id="btnLoop" onclick="toggleLoop()">🔁 문장반복</button>
+      <button id="btnLoop" onclick="toggleLoop()">🔁 반복</button>
       <button id="btnBlind" onclick="toggleBlind()">🙈 가리기</button>
     </div>
     <div class="btn-group">
@@ -199,41 +208,44 @@
   </div>
 </div>
 
-<div class="container">
-  <div class="video-meta">
-    <p class="video-title" id="videoTitle"></p>
-    <p class="video-hint">단어를 누르면 그 단어의 음성 위치로 바로 이동해 재생됩니다. (가리기 모드에서는 누른 단어만 잠깐 보여요)</p>
-  </div>
-  <div id="transcript"></div>
-  <div class="footer-note">
-    Bloomberg Television (2026.11.23) · 유튜브 자동 스크립트 기반
+<div class="transcript-pane" id="transcriptPane">
+  <div class="container">
+    <div class="video-meta">
+      <p class="video-title" id="videoTitle"></p>
+      <p class="video-hint">단어를 누르면 해당 음성으로 이동합니다. 위 영상과 아래 스크립트가 분리되어 가려지지 않아요.</p>
+    </div>
+    <div id="transcript"></div>
+    <div class="footer-note">
+      Bloomberg Television (2026.11.23) · 생방송 자막 지연(-5초) 보정 및 오인식 문구 정리본
+    </div>
   </div>
 </div>
 
 <script>
+// 생방송 자막은 실제 음성보다 ~5초 늦게 기록되어 시작 시간을 -5초 기준으로 보정했습니다.
 const VIDEO_DATA = {
   videoId: "rYnpB9L_1jI",
   title: "트럼프, 젠슨 황의 엔비디아 복귀 환영 · Bloomberg Television (2:39)",
   segments: [
-    { start: 0, end: 9, text: "assets taking place. Isabelle: S&P futures hitting highs. Nvidia higher in the premarket. I want to bring in Tyler Kendall." },
-    { start: 9, end: 16, text: "Can you talk to us about what this will mean for the government. We know that over the weekend --" },
-    { start: 16, end: 27, text: "We know that when there were some talks maybe Trump was saying last minute he wants Jensen Huang back and now it's been established there is maybe influence by senior officials." },
-    { start: 27, end: 38, text: "Talk about the context of that and what it can be moving forward if we keep having government influence with decisions for companies like Nvidia." },
-    { start: 38, end: 46, text: "Tyler: There is no doubt news from this White House as you heard moments ago about this statement from President Trump" },
-    { start: 46, end: 55, text: "saying this will ensure the success and prosperity of not only the company but the American economy which could see a little more of an insight into what President Trump was" },
-    { start: 55, end: 62, text: "watching here and then as you outline he also seems to claim the U.S. Attorney General confirmed the government does" },
-    { start: 62, end: 68, text: "not possess evidence that Jensen Huang has engaged in unlawful conduct but did say he thinks the board should continue to" },
-    { start: 68, end: 80, text: "investigate here Nvidia's compliance with U.S. export controls. The U.S. government just sought to tighten in a bid for these assets to advanced chips." },
-    { start: 80, end: 87, text: "This is on the President Trump had been pushing for from the start and it was interesting to hear from the U.S. Treasury" },
-    { start: 87, end: 93, text: "Secretary in interview over the weekend appeared to soften his stance going into this week saying he would leave the door" },
-    { start: 93, end: 101, text: "open to having Jensen Huang coming back as the chief executive after previously calling for what he called for a" },
-    { start: 101, end: 116, text: "dramatic shakeup in leadership. His quote to CBS was I said they should go to the outside but he is now on the outside so interesting needle we saw the Treasury Secretary thread." },
-    { start: 116, end: 119, text: "A flurry of oversight efforts by Washington." },
-    { start: 119, end: 125, text: "We have not heard from the Attorney General to confirm a statement put out on his post." },
-    { start: 125, end: 135, text: "We know the DOJ is investigating Nvidia and Megaspeed, the company at the center of this controversy." },
-    { start: 135, end: 142, text: "The report over the weekend the SEC is looking into Nvidia's accounting practices. Capitol Hill is gearing up for a" },
-    { start: 142, end: 152, text: "flurry of testimony, Jensen Huang is expected among the China Select Committee and that's going to be" },
-    { start: 152, end: 159, text: "behind closed doors. We should say we did get confirmation that there will also be public testimony." }
+    { start: 0, end: 4.5, text: "Isabelle: S&P futures hitting highs. Nvidia higher in the premarket. I want to bring in Tyler Kendall." },
+    { start: 4.5, end: 11.5, text: "Can you talk to us about what this will mean for the government? We know that over the weekend --" },
+    { start: 11.5, end: 22.0, text: "We know that there were some talks, maybe Trump was saying last minute he wants Jensen Huang back, and now it's been established their decision may be influenced by senior officials." },
+    { start: 22.0, end: 33.0, text: "Talk about the context of that and what it could mean moving forward if we keep having government influence over decisions for companies like Nvidia." },
+    { start: 33.0, end: 41.0, text: "Tyler: There is no doubt, news from this White House as you heard moments ago about this statement from President Trump," },
+    { start: 41.0, end: 50.0, text: "saying this will ensure the success and prosperity of not only the company but the American economy, giving us a little more insight into what President Trump was" },
+    { start: 50.0, end: 57.0, text: "watching here. And then, as you outlined, he also seems to claim the U.S. Attorney General confirmed the government does" },
+    { start: 57.0, end: 63.0, text: "not possess evidence that Jensen Huang has engaged in unlawful conduct, but did say he thinks the board should continue to" },
+    { start: 63.0, end: 75.0, text: "investigate Nvidia's compliance with U.S. export controls, which the U.S. government just sought to tighten in a bid to restrict access to advanced chips." },
+    { start: 75.0, end: 82.0, text: "This is something President Trump had been pushing for from the start, and it was interesting to hear from the U.S. Treasury" },
+    { start: 82.0, end: 88.0, text: "Secretary in an interview over the weekend. He appeared to soften his stance going into this week, saying he would leave the door" },
+    { start: 88.0, end: 96.0, text: "open to having Jensen Huang come back as the chief executive, after previously calling for what he described as a" },
+    { start: 96.0, end: 111.0, text: "dramatic shakeup in leadership. His quote to CBS was: 'I said they should go to the outside, but he is now on the outside.' So, an interesting needle we saw the Treasury Secretary thread." },
+    { start: 111.0, end: 114.5, text: "A flurry of oversight efforts by Washington." },
+    { start: 114.5, end: 120.5, text: "We have not heard from the Attorney General to confirm what the President put out in his post." },
+    { start: 120.5, end: 130.0, text: "We know the DOJ is investigating Nvidia and Megaspeed, the company at the center of this controversy." },
+    { start: 130.0, end: 137.0, text: "There was a report over the weekend that the SEC is looking into Nvidia's accounting practices. Capitol Hill is gearing up for a" },
+    { start: 137.0, end: 147.0, text: "flurry of testimony. Jensen Huang is expected before the China Select Committee, and that's going to be" },
+    { start: 147.0, end: 159.0, text: "behind closed doors. We should say we did get confirmation that there will also be public testimony." }
   ]
 };
 
@@ -342,7 +354,7 @@ function highlightPosition(sIdx, wIdx, autoScroll = true) {
       segEl.classList.add('active');
       if (autoScroll && sIdx !== lastScrolledSeg) {
         lastScrolledSeg = sIdx;
-        segEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        segEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
       if (wIdx >= 0) {
         const wEl = segEl.querySelector(`.word[data-word="${wIdx}"]`);
